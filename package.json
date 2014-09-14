@@ -1,0 +1,30 @@
+{
+  "name": "wtm-connector",
+  "version": "0.0.1",
+  "description": "A module used to connect to waytomaster.com API",
+  "main": "wtm-connector.js",
+  "scripts": {
+    "test": "grunt mochaTest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukiasz/wtm-connector.git"
+  },
+  "keywords": [
+    "waytomaster",
+    "english",
+    "subtitles"
+  ],
+  "author": "Lukasz Olender <lukasz.olender@waytomaster.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lukiasz/wtm-connector/issues"
+  },
+  "homepage": "https://github.com/lukiasz/wtm-connector",
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "grunt": "^0.4.5",
+    "grunt-mocha-test": "^0.12.0",
+    "mocha": "^1.21.4"
+  }
+}
