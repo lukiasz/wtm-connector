@@ -26,5 +26,9 @@
     "grunt": "^0.4.5",
     "grunt-mocha-test": "^0.12.0",
     "mocha": "^1.21.4"
+  },
+  "dependencies": {
+    "q": "^1.0.1",
+    "unirest": "^0.2.7"
   }
 }
