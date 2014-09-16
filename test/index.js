@@ -1,46 +1,65 @@
-/* global require, describe, it, console */
+/* global require, describe, it, console, Buffer */
 
 // line below allow to put alone expression in line, eg. 'expect(cookieJar).to.exist;'
 /* jshint -W030 */
 
-var expect = require('chai').expect;
-var wtmConnector = require('../wtm-connector.js');
+var expect = require('chai').expect,
+    fs = require('fs'),
+	wtmConnector = require('../wtm-connector.js');
 
 
 // in case you get a timeout: https://github.com/visionmedia/mocha/issues/1127
 describe('WtmConnector', function() {
     var globalTestData = {
         server: 'http://localhost:64053',
-        login: 'mister',
-        password: 'mister1'
+        login: 'test_' + Date.now(),
+        password: 'test_test1',
+        email: 'test_' + Date.now() + '@test.com'
     };
     
     // it'll use 'server' property only
     wtmConnector.init(globalTestData);
-    
-    describe('login', function() {
+      
+    describe('register, upload, index, download, delete, upload & download, delete', function() {
         var testData = globalTestData;
-        it('should log in and save cookie when credentials are valid', function(done) {
-            this.timeout(10000);
-            wtmConnector.account.login(testData.login, testData.password).then(function(response) {
-                var cookieJar = wtmConnector.config.cookieJar;
-                var server = wtmConnector.config.server;
-                expect(server).to.be.a('string');
-                expect(server).to.equal(testData.server);
-                expect(cookieJar).to.exist;
-                var cookie = cookieJar.getCookieString(server);
-                expect(cookie).to.be.not.empty;
-                //expect(cookie).to.be.empty;
+        var contentId = -1;
+        it('should list files and then download file properly', function(done) {
+            this.timeout(60000);
+            var fileName = 'sample.srt';
+            // register
+            wtmConnector.account.register(testData.login, testData.password, testData.email)
+            .then(function(result) {
+                //expect(result.body.User).to.equal(testData.login);
+                //expect(result.body.Email).to.equal(testData.email);
+                
+				// login
+                return wtmConnector.account.login(testData.login, testData.password);
+            })
+            .then(function(result) {
+                //expect(result.body.User).to.equal(testData.login);
+                //expect(result.body.Email).to.equal(testData.email);
+                
+                // upload
+                var fileBinaryData = fs.readFileSync(fileName);
+                var fileBase64Data = new Buffer(fileBinaryData).toString('base64');
+                return wtmConnector.content.upload(fileName, fileBase64Data);
+            })
+            .then(function(result) {
+                //expect(result.body).to.be.not.null;
+                
+                // download
+                contentId = result.body.Id;
+                return wtmConnector.content.get(result.body.Id, true, true);
+            })
+            .then(function(result) {
+                //expect(result.body).to.be.not.empty;
+                return wtmConnector.content.remove(contentId);
+            })
+            .then(function(result) {
                 done();
             });
+            
         });
         
-        it('should throw unauthorized when credentials are not valid', function(done) {
-            this.timeout(10000);
-            wtmConnector.account.login(testData.login + 'xxx', testData.password).fail(function(error) {
-                expect(error.status).to.equal(400);
-                done();
-            });
-    	});
-	});
+    });
 });

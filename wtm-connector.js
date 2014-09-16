@@ -12,7 +12,6 @@ var wtmConnector = function() {
     };
 
     // Account
-    
     var login = function(login, password) {
         var path = '/Account/Login';
         var data = {
@@ -55,6 +54,10 @@ var wtmConnector = function() {
         return get('/Content/Details?id=' + id);
     };
     
+    var remove = function(id) {
+        return post('/Content/Remove', id);
+    };
+    
     var getFile = function(id, removeKnownDialogs, srtOutput) {
         var options = 'None';
         if (removeKnownDialogs === true) {
@@ -66,11 +69,17 @@ var wtmConnector = function() {
         return get('/Content/Get?id=' + id + '&options=' + options);
     };
     
-    var uploadFile = function(filePath) {
-        var path = '/Content/New';
-        var data = 'notUsedHashcode';
-        return post(path, data, null, null, filePath);
+    var uploadFile = function(fileName, base64FileContent) {
+        var path = '/Content/UploadJson';
+        var data = {
+            Hashcode: 'notUsedHashcode',
+            Base64Content: base64FileContent,
+            Name: fileName
+        };
+        return post(path, data, null, null);
     };
+    
+   
     
     // Helpers methods
     
@@ -93,13 +102,9 @@ var wtmConnector = function() {
         return deferred.promise;
     };
     
-    var post = function(path, data, success, error, filePath) {
+    var post = function(path, data, success, error) {
         var deferred = q.defer();
         var call = unirest.post(config.server + path).send(data);
-        if (filePath) {
-            call.attach('file', filePath);
-        }
-        
         call.jar(config.cookieJar).end(
             function(response) {
                 if (response.error) {
@@ -137,7 +142,8 @@ var wtmConnector = function() {
             index: index,
             details: details,
             get: getFile,
-            new: uploadFile
+            upload: uploadFile,
+            remove: remove
         }
     };
 };
