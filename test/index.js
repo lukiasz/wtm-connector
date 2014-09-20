@@ -8,58 +8,148 @@ var expect = require('chai').expect,
 	wtmConnector = require('../wtm-connector.js');
 
 
-// in case you get a timeout: https://github.com/visionmedia/mocha/issues/1127
-describe('WtmConnector', function() {
-    var globalTestData = {
-        server: 'http://localhost:64053',
+describe('WTM Connector', function() {
+    var accountData = {
         login: 'test_' + Date.now(),
         password: 'test_test1',
         email: 'test_' + Date.now() + '@test.com'
     };
     
-    // it'll use 'server' property only
-    wtmConnector.init(globalTestData);
+    var fileData = {
+        // this change after upload
+        id: -1
+    };
       
-    describe('register, upload, index, download, delete, upload & download, delete', function() {
-        var testData = globalTestData;
-        var contentId = -1;
-        it('should list files and then download file properly', function(done) {
-            this.timeout(60000);
-            var fileName = 'sample.srt';
-            // register
-            wtmConnector.account.register(testData.login, testData.password, testData.email)
-            .then(function(result) {
-                //expect(result.body.User).to.equal(testData.login);
-                //expect(result.body.Email).to.equal(testData.email);
+    describe('API used in Popcorn Integration', function() {
+        this.timeout(10000);
+        it('Should register a new user', function(done) {
+            try {
+            wtmConnector.account.register(accountData).then(function(result) {
                 
-				// login
-                return wtmConnector.account.login(testData.login, testData.password);
-            })
-            .then(function(result) {
-                //expect(result.body.User).to.equal(testData.login);
-                //expect(result.body.Email).to.equal(testData.email);
+                	// Mocha doesn't properly handle exceptions in
+                    // asynchronous calls - that's why try/catch are
+                    // everywhere.
+                	// http://stackoverflow.com/questions/16607039/in-mocha-testing-while-calling-asynchronous-function-how-to-avoid-the-timeout-er
+                try {
+                    expect(result.User).to.equal(accountData.login);
+                	expect(result.Email).to.equal(accountData.email);
+					done();
+                } catch (error) {
+                    done(error);
+                }
+            }).fail(function(error) {
+               done(error);
+            });
+            } catch (e) {
+             done(e);   
                 
-                // upload
-                var fileBinaryData = fs.readFileSync(fileName);
-                var fileBase64Data = new Buffer(fileBinaryData).toString('base64');
-                return wtmConnector.content.upload(fileName, fileBase64Data);
-            })
-            .then(function(result) {
-                //expect(result.body).to.be.not.null;
-                
-                // download
-                contentId = result.body.Id;
-                return wtmConnector.content.get(result.body.Id, true, true);
-            })
-            .then(function(result) {
-                //expect(result.body).to.be.not.empty;
-                return wtmConnector.content.remove(contentId);
-            })
-            .then(function(result) {
-                done();
+            }
+        });
+        
+        it('Should login an existing user', function(done) {
+            wtmConnector.account.login(accountData).then(function(result) {
+                try {
+                    expect(result.User).to.equal(accountData.login);
+                	expect(result.Email).to.equal(accountData.email);
+					done();
+                } catch (error) {
+                    done(error);
+                }
+            }).fail(function(error) {
+               done(error);
+            });
+        });
+        
+        it('Should send Base 64 encoded file', function(done) {
+            var existingFileName = 'sample.srt';
+
+            // Change that if you want file to be
+            // parsed every time on server.
+            var fileNameSentToServer = 'sample.srt';
+            var fileBinaryData = fs.readFileSync(existingFileName);
+            var fileBase64Data = new Buffer(fileBinaryData).toString('base64');
+            
+            wtmConnector.content.upload({
+                name: fileNameSentToServer,
+                base64Content: fileBase64Data
+            }).then(function(result) {
+                try {
+                    expect(result.Id).to.be.above(0);
+                    fileData.id = result.Id;
+					done();
+                } catch (error) {
+                    done(error);
+                }
+            }).fail(function(error) {
+               done(error);
+            });
+        });
+        
+        it('Should receive previously uploaded file', function(done) {
+            wtmConnector.content.get({
+                id: fileData.id,
+                removeKnownDialogs: true,
+                srtOutput: true
+            }).then(function(result) {
+                try {
+                    expect(result).to.be.not.empty;
+					done();
+                } catch (error) {
+                    done(error);
+                }
+            }).fail(function(error) {
+               done(error);
+            });
+        });
+        
+        it('Should remove previously uploaded file', function(done) {
+            wtmConnector.content.remove({
+                id: fileData.id
+            }).then(function(result) {
+                try {
+                    expect(result).to.equal('ok');
+					done();
+                } catch (error) {
+                    done(error);
+                }
+            }).fail(function(error) {
+               done(error);
+            });
+        });
+        
+        it('Should invoke error handler when server does not respond', function(done) {
+            wtmConnector.init({
+                server: 'http://waytomaster-invalid.com'
             });
             
+            wtmConnector.account.logoff().then(function(result) {
+                wtmConnector.init({
+                	server: 'http://waytomaster.com'
+            	});
+                done('Error handler not invoked');
+            }).fail(function(error) {
+                wtmConnector.init({
+                	server: 'http://waytomaster.com'
+            	});
+               	done();
+            });
         });
+        
+        it('Should invoke error handler when response has error code >= 400', function(done) {
+            wtmConnector.content.remove({
+                id: -1
+            }).then(function(result) {
+                done('Error handler not invoked');
+            }).fail(function(error) {
+                done();
+            });
+        });
+            
+            
+            
+            
+            
+            
         
     });
 });

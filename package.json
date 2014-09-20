@@ -29,6 +29,8 @@
   },
   "dependencies": {
     "q": "^1.0.1",
+    "request": "^2.44.0",
+    "tough-cookie": "^0.12.1",
     "unirest": "^0.2.7"
   }
 }

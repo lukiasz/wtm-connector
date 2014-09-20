@@ -1,132 +1,166 @@
 /* global require, module */
-var unirest = require('unirest'),
+var request = require('request'),
     q = require('q');
 
 var wtmConnector = function() {
 
-    var config = { };
-
-    var init = function(options) {
-        config.server = options.server || 'http://waytomaster.com';
-        config.cookieJar = options.cookieJar || unirest.jar();
+    var config = {
+    	server: 'http://waytomaster.com'
+    };
+    
+    var init = function(params) {
+        config.server = params.server || config.server;
     };
 
     // Account
-    var login = function(login, password) {
+    var login = function(params) {
         var path = '/Account/Login';
+        
+        // I'm rewriting params->data to show
+        // what actually goes to server
         var data = {
-            Name: login,
-            Password: password,
+            Name: params.login,
+            Password: params.password,
             RememberMe: true
         };
-        return post(path, data, initCookieJar);
+        return post({
+            path: path,
+            data: data
+        });
     };
 
-    var register = function(login, password, email) {
+    var register = function(params) {
+        
         var path = '/Account/Register';
         var data = {
-            Name: login,
-            Password: password,
-            Email: email
+            Name: params.login,
+            Password: params.password,
+            Email: params.email
         };
-        return post(path, data, initCookieJar);
+        return post({
+            path: path,
+            data: data
+        });
     };
     
     var getUserData = function() {
-        return get('/Account/GetUserData');
+        return get({
+            path: '/Account/GetUserData'
+        });
     };
     
     var logoff = function() {
-        return get('/Account/LogOff');
+        return get({
+            path: '/Account/LogOff'
+        });
     };
     
     var isAuthenticated = function() {
-        return get('/Account/IsAuthenticated');
+        return get({
+            path: '/Account/IsAuthenticated'
+        });
     };
     
     // Content
     
     var index = function() {
-        return get('/Content/Index');
+        return get({
+            path: '/Content/Index'
+        });
     };
     
-    var details = function(id) {
-        return get('/Content/Details?id=' + id);
+    var details = function(params) {
+        return get({
+            path: '/Content/Details?id=' + params.id
+        });
     };
     
-    var remove = function(id) {
-        return post('/Content/Remove', id);
+    var remove = function(params) {
+        var data = {
+            id: params.id
+        };
+        return post({
+            path: '/Content/Remove',
+            data: data
+        });
     };
     
-    var getFile = function(id, removeKnownDialogs, srtOutput) {
-        var options = 'None';
-        if (removeKnownDialogs === true) {
-            options += ',RemoveKnownDialogs';
+    var getFile = function(params) {
+        var subsModificators = 'None';
+        if (params.removeKnownDialogs === true) {
+            subsModificators += ',RemoveKnownDialogs';
         }
-        if (srtOutput === true) {
-            options += ',SrtOutput';
+        if (params.srtOutput === true) {
+            subsModificators += ',SrtOutput';
         }
-        return get('/Content/Get?id=' + id + '&options=' + options);
+        return get({
+            path: '/Content/Get?id=' + params.id + '&options=' + subsModificators,
+            JSONNotParse: true
+        });
     };
     
-    var uploadFile = function(fileName, base64FileContent) {
+    var uploadFile = function(params) {
         var path = '/Content/UploadJson';
         var data = {
             Hashcode: 'notUsedHashcode',
-            Base64Content: base64FileContent,
-            Name: fileName
+            Base64Content: params.base64Content,
+            Name: params.name
         };
-        return post(path, data, null, null);
+        return post({
+            path: path,
+            data: data
+        });
     };
     
    
     
     // Helpers methods
-    
-    var get = function(pathWithParams, success, error) {
+    var get = function(params) {
         var deferred = q.defer();
-        unirest.get(config.server + pathWithParams).jar(config.cookieJar).end(
-            function(response) {
-                if (response.error) {
-                    if (typeof error == typeof Function) {
-                        error(response.error);
-                    }
-                    deferred.reject(response.error);
-                } else {
-                    if (typeof success == typeof Function) {
-                        success(response);
-                    }
-                    deferred.resolve(response);
-                }
-            });
+        
+        var r = request({
+            method: 'GET',
+            gzip: true,
+            uri: config.server + params.path,
+            jar: true
+        }, standardCallback(deferred, params));
+        
         return deferred.promise;
     };
     
-    var post = function(path, data, success, error) {
+    var post = function(params) {
         var deferred = q.defer();
-        var call = unirest.post(config.server + path).send(data);
-        call.jar(config.cookieJar).end(
-            function(response) {
-                if (response.error) {
-                    if (typeof error == typeof Function) {
-                        error(response.error);
-                    }
-                    deferred.reject(response.error);
-                } else {
-                    if (typeof success == typeof Function) {
-                        success(response);
-                    }
-                    deferred.resolve(response);
-                }
-            });
+        
+        var r = request({
+            method: 'POST',
+            gzip: true,
+            uri: config.server + params.path,
+            form: params.data,
+            jar: true
+        }, standardCallback(deferred, params));
         return deferred.promise;
     };
     
-    var initCookieJar = function(response) {
-        config.cookieJar = unirest.jar();
-        var authCookie = unirest.cookie('.ASPXAUTH=' +
-                                        response.cookies['.ASPXAUTH']);
-        config.cookieJar.add(authCookie, config.server);
+    var standardCallback = function(deferred, params) {
+        return function(error, response, body) {
+            if (error || response.statusCode >= 400) {
+                error = error || response;
+               	if (typeof params.errorCallback == typeof Function) {
+                   	params.errorCallback(error);
+               	}
+                debugger;
+                deferred.reject(error);
+            } else {
+                if (typeof params.successCallback == typeof Function) {
+                    params.successCallback(JSON.parse(body));
+                }
+                if (params.JSONNotParse) {
+                    deferred.resolve(body);
+                } else {
+                	deferred.resolve(JSON.parse(body));
+                }
+            }
+        };
     };
     
     return {
@@ -136,7 +170,8 @@ var wtmConnector = function() {
             login: login,
         	getUserData: getUserData,
             register: register,
-            isAuthenticated: isAuthenticated
+            isAuthenticated: isAuthenticated,
+            logoff: logoff
         },
         content: {
             index: index,
