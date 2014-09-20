@@ -1,6 +1,7 @@
 /* global require, module */
 var request = require('request'),
-    q = require('q');
+    q = require('q'),
+    sha1 = require('sha-1');
 
 var wtmConnector = function() {
 
@@ -15,12 +16,12 @@ var wtmConnector = function() {
     // Account
     var login = function(params) {
         var path = '/Account/Login';
+        var encryptedPassword = params.sha1EncryptedPassword ||
+            getEncryptedPassword(params.password);
         
-        // I'm rewriting params->data to show
-        // what actually goes to server
         var data = {
             Name: params.login,
-            Password: params.password,
+            Password: encryptedPassword,
             RememberMe: true
         };
         return post({
@@ -28,13 +29,19 @@ var wtmConnector = function() {
             data: data
         });
     };
+    
+    var getEncryptedPassword = function(password) {
+        return sha1(password);
+    };
 
     var register = function(params) {
-        
         var path = '/Account/Register';
+        var encryptedPassword = params.sha1EncryptedPassword ||
+            sha1(params.password);
+        debugger;
         var data = {
             Name: params.login,
-            Password: params.password,
+            Password: encryptedPassword,
             Email: params.email
         };
         return post({
@@ -148,7 +155,6 @@ var wtmConnector = function() {
                	if (typeof params.errorCallback == typeof Function) {
                    	params.errorCallback(error);
                	}
-                debugger;
                 deferred.reject(error);
             } else {
                 if (typeof params.successCallback == typeof Function) {
@@ -166,6 +172,7 @@ var wtmConnector = function() {
     return {
         init: init,
         config: config,
+        getEncryptedPassword: getEncryptedPassword,
         account: {
             login: login,
         	getUserData: getUserData,

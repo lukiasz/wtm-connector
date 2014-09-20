@@ -19,6 +19,16 @@ describe('WTM Connector', function() {
         // this change after upload
         id: -1
     };
+    
+    
+    describe('Utilities', function() {
+        it('Should encrypt user password with sha-1 algorithm', function() {
+            var plainTextPassword = 'password';
+            var sha1EncryptedPassword = '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8';
+            var wtmEncryptedPassword = wtmConnector.getEncryptedPassword(plainTextPassword);
+            expect(wtmEncryptedPassword).to.equal(sha1EncryptedPassword);
+        });
+    });
       
     describe('API used in Popcorn Integration', function() {
         this.timeout(10000);
