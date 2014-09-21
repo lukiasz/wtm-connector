@@ -6,7 +6,7 @@ var request = require('request'),
 var wtmConnector = function() {
 
     var config = {
-    	server: 'http://waytomaster.com'
+    	server: 'http://92.222.221.195:80'
     };
     
     var init = function(params) {
@@ -33,12 +33,20 @@ var wtmConnector = function() {
     var getEncryptedPassword = function(password) {
         return sha1(password);
     };
+    
+    var testInternetConnection = function() {
+        return get({
+            path: '',
+            server: 'http://google.com',
+            JSONNotParse: true
+        });
+        
+    };
 
     var register = function(params) {
         var path = '/Account/Register';
         var encryptedPassword = params.sha1EncryptedPassword ||
             sha1(params.password);
-        debugger;
         var data = {
             Name: params.login,
             Password: encryptedPassword,
@@ -124,12 +132,15 @@ var wtmConnector = function() {
     // Helpers methods
     var get = function(params) {
         var deferred = q.defer();
-        
+        var server = params.server || config.server;
         var r = request({
             method: 'GET',
             gzip: true,
-            uri: config.server + params.path,
-            jar: true
+            uri: server + params.path,
+            jar: true,
+            headers: {
+                Host: 'waytomaster.com'
+            }
         }, standardCallback(deferred, params));
         
         return deferred.promise;
@@ -137,13 +148,16 @@ var wtmConnector = function() {
     
     var post = function(params) {
         var deferred = q.defer();
-        
+        var server = params.server || config.server;
         var r = request({
             method: 'POST',
             gzip: true,
-            uri: config.server + params.path,
+            uri: server + params.path,
             form: params.data,
-            jar: true
+            jar: true,
+            headers: {
+                Host: 'waytomaster.com'
+            }
         }, standardCallback(deferred, params));
         return deferred.promise;
     };
@@ -173,6 +187,7 @@ var wtmConnector = function() {
         init: init,
         config: config,
         getEncryptedPassword: getEncryptedPassword,
+        testInternetConnection: testInternetConnection,
         account: {
             login: login,
         	getUserData: getUserData,

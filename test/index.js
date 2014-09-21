@@ -28,10 +28,37 @@ describe('WTM Connector', function() {
             var wtmEncryptedPassword = wtmConnector.getEncryptedPassword(plainTextPassword);
             expect(wtmEncryptedPassword).to.equal(sha1EncryptedPassword);
         });
+        
+        describe('testInternetConnection', function() {
+            it('Should get content from google.com', function(done) {
+            	wtmConnector.testInternetConnection().then(function(result) {
+                    expect(result).to.be.not.empty;
+                    done();
+                }).fail(function(error) {
+                    done('It not works: ' + error);
+                });
+        	});  
+		});
+        
+        
     });
       
     describe('API used in Popcorn Integration', function() {
-        this.timeout(10000);
+        this.timeout(60000);
+        
+        
+        
+        
+        it('Should invoke error handler when response has error code >= 400', function(done) {
+            wtmConnector.content.remove({
+                id: -1
+            }).then(function(result) {
+                done('Error handler not invoked');
+            }).fail(function(error) {
+                done();
+            });
+        });
+        
         it('Should register a new user', function(done) {
             try {
             wtmConnector.account.register(accountData).then(function(result) {
@@ -112,6 +139,28 @@ describe('WTM Connector', function() {
             });
         });
         
+        it('Should receive an exception with contentId after trying to upload same file again', function(done) {
+            var existingFileName = 'sample.srt';
+
+
+            var fileNameSentToServer = 'sample.srt';
+            var fileBinaryData = fs.readFileSync(existingFileName);
+            var fileBase64Data = new Buffer(fileBinaryData).toString('base64');
+            
+            wtmConnector.content.upload({
+                name: fileNameSentToServer,
+                base64Content: fileBase64Data
+            }).then(function(result) {
+                done('Exception not received');
+            }).fail(function(error) {
+                expect(error.body).to.be.not.empty;
+                var body = JSON.parse(error.body);
+                expect(body.Data.errorCode).to.be.not.empty;
+                expect(body.Data.contentId).to.be.above(0);
+               done();
+            });
+        });
+        
         it('Should remove previously uploaded file', function(done) {
             wtmConnector.content.remove({
                 id: fileData.id
@@ -144,22 +193,6 @@ describe('WTM Connector', function() {
                	done();
             });
         });
-        
-        it('Should invoke error handler when response has error code >= 400', function(done) {
-            wtmConnector.content.remove({
-                id: -1
-            }).then(function(result) {
-                done('Error handler not invoked');
-            }).fail(function(error) {
-                done();
-            });
-        });
-            
-            
-            
-            
-            
-            
         
     });
 });
