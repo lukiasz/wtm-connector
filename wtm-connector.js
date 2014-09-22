@@ -10,6 +10,7 @@ var wtmConnector = function() {
     };
     
     var init = function(params) {
+        params = params || {};
         config.server = params.server || config.server;
     };
 
