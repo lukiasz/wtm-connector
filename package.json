@@ -1,6 +1,6 @@
 {
   "name": "wtm-connector",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A module used to connect to waytomaster.com API",
   "main": "wtm-connector.js",
   "scripts": {
