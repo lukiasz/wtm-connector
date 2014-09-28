@@ -128,8 +128,6 @@ var wtmConnector = function() {
         });
     };
     
-   
-    
     // Helpers methods
     var get = function(params) {
         var deferred = q.defer();

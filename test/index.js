@@ -38,17 +38,12 @@ describe('WTM Connector', function() {
                     done('It not works: ' + error);
                 });
         	});  
-		});
-        
-        
+		});        
     });
       
     describe('API used in Popcorn Integration', function() {
         this.timeout(60000);
-        
-        
-        
-        
+                
         it('Should invoke error handler when response has error code >= 400', function(done) {
             wtmConnector.content.remove({
                 id: -1
@@ -139,7 +134,7 @@ describe('WTM Connector', function() {
             });
         });
         
-        it('Should receive an exception with contentId after trying to upload same file again', function(done) {
+        it('Should receive contentId after trying to upload same file again', function(done) {
             var existingFileName = 'sample.srt';
 
 
@@ -151,13 +146,10 @@ describe('WTM Connector', function() {
                 name: fileNameSentToServer,
                 base64Content: fileBase64Data
             }).then(function(result) {
-                done('Exception not received');
+                expect(result.Id).to.be.above(0);
+                done();
             }).fail(function(error) {
-                expect(error.body).to.be.not.empty;
-                var body = JSON.parse(error.body);
-                expect(body.Data.errorCode).to.be.not.empty;
-                expect(body.Data.contentId).to.be.above(0);
-               done();
+                done(error);
             });
         });
         
